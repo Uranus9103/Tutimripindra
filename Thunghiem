@@ -1,0 +1,274 @@
+-- Tải Fluent UI Library
+local Library = loadstring(game:HttpGetAsync("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
+
+-- Âm thanh khởi động
+local startupSound = Instance.new("Sound")
+startupSound.SoundId = "rbxassetid://8594342648"
+startupSound.Volume = 5
+startupSound.Looped = false
+startupSound.Parent = game.CoreGui
+startupSound:Play()
+
+-- Các service cần thiết
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local DataSer = require(game:GetService("ReplicatedStorage").Modules.DataService)
+
+-- Biến toàn cục
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local teleportEnabled = false
+local isTeleporting = false
+
+-- Tạo cửa sổ chính
+local Window = Library:CreateWindow{
+    Title = "ULTIMATE HUB",
+    SubTitle = "by subcakevn",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(650, 550),
+    Resize = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
+}
+
+-- Thêm tab chính
+local MainTab = Window:AddTab{
+    Title = "Main",
+    Icon = "rbxassetid://10734927910"
+}
+
+-- Thêm section teleport
+local TeleportSection = MainTab:AddSection{
+    Title = "Teleport System"
+}
+
+-- Vị trí teleport (có thể chỉnh sửa)
+local teleportLocations = {
+    GEAR = Vector3.new(-284.41452, 2.76619363, -32.9778976),
+    PET = Vector3.new(-285.41452, 2.76619363, 4.62210417)
+}
+
+-- Tạo nút teleport
+for name, pos in pairs(teleportLocations) do
+    TeleportSection:AddButton{
+        Title = "TP TO "..name,
+        Description = "Teleport đến vị trí "..name,
+        Callback = function()
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = CFrame.new(pos)
+                Library:Notify{
+                    Title = "Thành công",
+                    Content = "Đã teleport đến "..name,
+                    Duration = 3,
+                    Type = "success"
+                }
+            end
+        end
+    }
+end
+
+-- Thêm section auto farm
+local FarmSection = MainTab:AddSection{
+    Title = "Auto Farm System"
+}
+
+-- Toggle auto farm
+FarmSection:AddToggle{
+    Title = "Bật/Tắt Auto Farm",
+    Default = false,
+    Callback = function(value)
+        teleportEnabled = value
+        Library:Notify{
+            Title = "Thông báo",
+            Content = "Auto Farm "..(value and "đã bật" or "đã tắt"),
+            Duration = 3
+        }
+    end
+}
+
+-- Thêm section pet
+local PetSection = MainTab:AddSection{
+    Title = "Pet Display System"
+}
+
+-- Ô nhập tên pet
+local PetNameInput = PetSection:AddInput{
+    Title = "Tên Pet",
+    Default = "",
+    PlaceholderText = "Nhập tên pet cần tìm",
+    Numeric = false,
+    Finished = false,
+    Callback = function(text) end
+}
+
+-- Nút kiểm tra pet
+PetSection:AddButton{
+    Title = "Kiểm Tra Pet",
+    Description = "Nhấn để kiểm tra xem có pet trong trứng không",
+    Callback = function()
+        local TargetName = PetNameInput.Value
+        local foundEggs = false
+        
+        if TargetName == "" then
+            Library:Notify{
+                Title = "Lỗi",
+                Content = "Vui lòng nhập tên pet cần tìm",
+                Duration = 5
+            }
+            return
+        end
+        
+        for i, v in pairs(DataSer:GetData().SavedObjects) do
+            if v.ObjectType == "PetEgg" and v.Data.RandomPetData ~= nil and v.Data.CanHatch then
+                if v.Data.RandomPetData.Name == TargetName then
+                    foundEggs = true
+                    break
+                end
+            end
+        end
+        
+        if foundEggs then
+            Library:Notify{
+                Title = "Thành công",
+                Content = "Đã tìm thấy pet '"..TargetName.."' trong trứng!",
+                Duration = 8,
+                Type = "success"
+            }
+        else
+            Library:Notify{
+                Title = "Không tìm thấy",
+                Content = "Không tìm thấy pet '"..TargetName.."' trong trứng.\nSẽ tự động rejoin sau 3 giây...",
+                Duration = 3,
+                Type = "error"
+            }
+            
+            task.delay(3, function()
+                player:Kick("Không tìm thấy pet. Đang rejoin...")
+                task.wait(1)
+                game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+            end)
+        end
+    end
+}
+
+-- Thêm section cài đặt
+local UISection = MainTab:AddSection{
+    Title = "Tùy Chỉnh Giao Diện"
+}
+
+-- Chọn theme
+UISection:AddDropdown{
+    Title = "Chọn Theme",
+    Values = {"Dark", "Light", "Darker", "Aqua", "Rose"},
+    Multi = false,
+    Default = "Dark",
+    Callback = function(Value)
+        Library:SetTheme(Value)
+    end
+}
+
+-- Chọn màu
+UISection:AddColorPicker{
+    Title = "Màu Chính",
+    Default = Color3.fromRGB(0, 120, 215),
+    Callback = function(Value)
+        Library:ChangeColor("Primary", Value)
+    end
+}
+
+-- Thêm tab thông tin
+local InfoTab = Window:AddTab{
+    Title = "Info",
+    Icon = "rbxassetid://10747334579"
+}
+
+InfoTab:AddParagraph{
+    Title = "Hướng Dẫn Sử Dụng",
+    Content = [[
+1. TELEPORT: Chọn điểm cần teleport
+2. AUTO FARM: Bật/tắt tự động thu thập
+3. PET SYSTEM: Kiểm tra pet trong trứng
+4. Cài đặt giao diện ở tab Main
+    ]]
+}
+
+-- Hàm auto farm
+local function findCoinContainer()
+    for _, child in pairs(workspace:GetChildren()) do
+        local coinContainer = child:FindFirstChild("CoinContainer")
+        if coinContainer then
+            return coinContainer
+        end
+    end
+    return nil
+end
+
+local function findNearestCoin(radius)
+    local coinContainer = findCoinContainer()
+    if not coinContainer then return nil end
+    
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local nearestCoin = nil
+    local nearestDistance = radius
+    
+    for _, coin in pairs(coinContainer:GetChildren()) do
+        local distance = (coin.Position - humanoidRootPart.Position).Magnitude
+        if distance < nearestDistance then
+            nearestCoin = coin
+            nearestDistance = distance
+        end
+    end
+    return nearestCoin
+end
+
+local function teleportToCoin(coin)
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = coin.CFrame})
+    tween:Play()
+    return tween
+end
+
+local function teleportToNearbyOrRandomCoin()
+    if not teleportEnabled or isTeleporting then return end
+    
+    local nearbyRadius = 50
+    local nearbyCoin = findNearestCoin(nearbyRadius)
+    
+    if nearbyCoin then
+        isTeleporting = true
+        local tween = teleportToCoin(nearbyCoin)
+        tween.Completed:Wait()
+        isTeleporting = false
+    else
+        local coinContainer = findCoinContainer()
+        if not coinContainer then return end
+        
+        local coins = coinContainer:GetChildren()
+        if #coins == 0 then return end
+        
+        local randomCoin = coins[math.random(1, #coins)]
+        isTeleporting = true
+        local tween = teleportToCoin(randomCoin)
+        tween.Completed:Wait()
+        isTeleporting = false
+    end
+end
+
+-- Xử lý khi character thay đổi
+local function onCharacterAdded(newCharacter)
+    character = newCharacter
+end
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Vòng lặp auto farm
+RunService.Heartbeat:Connect(function()
+    if teleportEnabled and character and character:FindFirstChild("HumanoidRootPart") then
+        teleportToNearbyOrRandomCoin()
+    end
+end)
+
+-- Mở cửa sổ khi load
+Library:SelectTab(1)
+print("Ultimate Hub đã được tải thành công!")
