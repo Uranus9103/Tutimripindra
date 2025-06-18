@@ -1,0 +1,392 @@
+-- Tải Fluent UI Library
+local Library = loadstring(game:HttpGetAsync("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
+
+-- Âm thanh khởi động
+local startupSound = Instance.new("Sound")
+startupSound.SoundId = "rbxassetid://8594342648"
+startupSound.Volume = 5
+startupSound.Looped = false
+startupSound.Parent = game.CoreGui
+startupSound:Play()
+
+-- Tạo cửa sổ chính
+local Window = Library:CreateWindow{
+    Title = "CAT HUB",
+    SubTitle = "Flight Control System",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(500, 400),
+    Resize = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
+}
+
+-- Thêm tab điều khiển bay
+local FlightTab = Window:AddTab({
+    Title = "Flight Control",
+    Icon = ""
+})
+
+-- Thêm các section
+local FlightSection = FlightTab:AddSection("Flight Settings")
+local ControlSection = FlightTab:AddSection("Controls")
+local InfoSection = FlightTab:AddSection("Information")
+
+-- Biến điều khiển
+local flyEnabled = false
+local flightSpeed = 1
+local flightToggled = false
+
+-- Tạo nút bật/tắt bay
+FlightSection:AddButton({
+    Title = flightToggled and "Disable Flight" or "Enable Flight",
+    Description = "Toggle flight mode",
+    Callback = function()
+        flightToggled = not flightToggled
+        FlightSection:GetButton(1):SetTitle(flightToggled and "Disable Flight" or "Enable Flight")
+        
+        if flightToggled then
+            enableFlight()
+        else
+            disableFlight()
+        end
+    end
+})
+
+-- Thanh điều chỉnh tốc độ
+FlightSection:AddSlider({
+    Title = "Flight Speed",
+    Description = "Adjust your flight speed",
+    Default = flightSpeed,
+    Min = 1,
+    Max = 10,
+    Callback = function(value)
+        flightSpeed = value
+    end
+})
+
+-- Thông tin điều khiển
+ControlSection:AddParagraph({
+    Title = "Controls",
+    Content = "WASD: Move\nSpace: Ascend\nShift: Descend\nClick + Drag: Move GUI"
+})
+
+-- Thông tin tác giả
+InfoSection:AddParagraph({
+    Title = "Created by",
+    Content = "Thịnh (subcakevn)"
+})
+
+-- Tạo GUI bay nhanh (mini GUI)
+local main = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local up = Instance.new("TextButton")
+local down = Instance.new("TextButton")
+local onof = Instance.new("TextButton")
+local TextLabel = Instance.new("TextLabel")
+local plus = Instance.new("TextButton")
+local speed = Instance.new("TextLabel")
+local mine = Instance.new("TextButton")
+
+-- Properties:
+main.Name = "SubcakeVN"
+main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Frame.Parent = main
+Frame.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+Frame.BorderColor3 = Color3.fromRGB(0, 132, 215)
+Frame.Position = UDim2.new(0.8, 0, 0.5, 0)
+Frame.Size = UDim2.new(0, 190, 0, 57)
+Frame.Active = true
+Frame.Draggable = true
+
+up.Name = "lên"
+up.Parent = Frame
+up.BackgroundColor3 = Color3.fromRGB(79, 255, 152)
+up.Size = UDim2.new(0, 44, 0, 28)
+up.Font = Enum.Font.GothamBold
+up.Text = "UP"
+up.TextColor3 = Color3.fromRGB(0, 0, 0)
+up.TextSize = 14.000
+
+down.Name = "xuống"
+down.Parent = Frame
+down.BackgroundColor3 = Color3.fromRGB(215, 255, 121)
+down.Position = UDim2.new(0, 0, 0.491, 0)
+down.Size = UDim2.new(0, 44, 0, 28)
+down.Font = Enum.Font.GothamBold
+down.Text = "DOWN"
+down.TextColor3 = Color3.fromRGB(0, 0, 0)
+down.TextSize = 14.000
+
+onof.Name = "onof"
+onof.Parent = Frame
+onof.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+onof.Position = UDim2.new(0.702, 0, 0.491, 0)
+onof.Size = UDim2.new(0, 56, 0, 28)
+onof.Font = Enum.Font.GothamBold
+onof.Text = "FLY"
+onof.TextColor3 = Color3.fromRGB(0, 0, 0)
+onof.TextSize = 14.000
+
+TextLabel.Parent = Frame
+TextLabel.BackgroundColor3 = Color3.fromRGB(242, 60, 255)
+TextLabel.Position = UDim2.new(0.469, 0, 0, 0)
+TextLabel.Size = UDim2.new(0, 100, 0, 28)
+TextLabel.Font = Enum.Font.GothamBold
+TextLabel.Text = "by Thịnh"
+TextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.TextScaled = true
+TextLabel.TextSize = 14.000
+TextLabel.TextWrapped = true
+
+plus.Name = "plus"
+plus.Parent = Frame
+plus.BackgroundColor3 = Color3.fromRGB(133, 145, 255)
+plus.Position = UDim2.new(0.231, 0, 0, 0)
+plus.Size = UDim2.new(0, 45, 0, 28)
+plus.Font = Enum.Font.GothamBold
+plus.Text = "+"
+plus.TextColor3 = Color3.fromRGB(0, 0, 0)
+plus.TextScaled = true
+plus.TextSize = 14.000
+plus.TextWrapped = true
+
+speed.Name = "speed"
+speed.Parent = Frame
+speed.BackgroundColor3 = Color3.fromRGB(255, 85, 0)
+speed.Position = UDim2.new(0.468, 0, 0.491, 0)
+speed.Size = UDim2.new(0, 44, 0, 28)
+speed.Font = Enum.Font.GothamBold
+speed.Text = "1"
+speed.TextColor3 = Color3.fromRGB(0, 0, 0)
+speed.TextScaled = true
+speed.TextSize = 14.000
+speed.TextWrapped = true
+
+mine.Name = "mine"
+mine.Parent = Frame
+mine.BackgroundColor3 = Color3.fromRGB(123, 255, 247)
+mine.Position = UDim2.new(0.231, 0, 0.491, 0)
+mine.Size = UDim2.new(0, 45, 0, 29)
+mine.Font = Enum.Font.GothamBold
+mine.Text = "-"
+mine.TextColor3 = Color3.fromRGB(0, 0, 0)
+mine.TextScaled = true
+mine.TextSize = 14.000
+mine.TextWrapped = true
+
+-- Biến hệ thống
+local speaker = game:GetService("Players").LocalPlayer
+local speeds = 1
+local nowe = false
+
+-- Thông báo khởi động
+game:GetService("StarterGui"):SetCore("SendNotification", { 
+    Title = "SUB THINH",
+    Text = "Flight System by THINH",
+    Icon = "",
+    Duration = 5
+})
+
+-- Hiệu ứng hover cho nút
+local function buttonHoverEffect(button)
+    button.MouseEnter:Connect(function()
+        game:GetService("TweenService"):Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(
+                math.floor(button.BackgroundColor3.R * 255 * 0.8),
+                math.floor(button.BackgroundColor3.G * 255 * 0.8),
+                math.floor(button.BackgroundColor3.B * 255 * 0.8)
+            )
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        game:GetService("TweenService"):Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = button:GetAttribute("OriginalColor")
+        }):Play()
+    end)
+end
+
+-- Áp dụng hiệu ứng cho tất cả nút
+for _, button in pairs({up, down, onof, plus, mine}) do
+    button:SetAttribute("OriginalColor", button.BackgroundColor3)
+    buttonHoverEffect(button)
+end
+
+-- Chức năng bay
+local function enableFlight()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    -- Tắt các trạng thái humanoid
+    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+        humanoid:SetStateEnabled(state, false)
+    end
+    
+    -- Tạo các bộ phận vật lý
+    local torso = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("UpperTorso")
+    if not torso then return end
+    
+    local bg = Instance.new("BodyGyro", torso)
+    bg.P = 9e4
+    bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.cframe = torso.CFrame
+    
+    local bv = Instance.new("BodyVelocity", torso)
+    bv.velocity = Vector3.new(0, 0.1, 0)
+    bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    
+    humanoid.PlatformStand = true
+    
+    -- Kết nối sự kiện đầu vào
+    local connection
+    connection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not flightToggled or not character or not humanoid or humanoid.Health <= 0 then
+            connection:Disconnect()
+            return
+        end
+        
+        local camera = workspace.CurrentCamera
+        local moveDirection = Vector3.new()
+        
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDirection = moveDirection + Vector3.new(0, -1, 0)
+        end
+        
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit * flightSpeed
+            bv.Velocity = moveDirection * 50
+        else
+            bv.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        bg.CFrame = camera.CFrame
+    end)
+    
+    -- Hiệu ứng khi bật bay
+    local effect = Instance.new("ParticleEmitter", torso)
+    effect.LightEmission = 1
+    effect.Texture = "rbxassetid://243664672"
+    effect.Color = ColorSequence.new(Color3.fromRGB(0, 162, 255))
+    effect.Lifetime = NumberRange.new(0.5)
+    effect.Rate = 50
+    effect.Speed = NumberRange.new(2)
+    effect.Size = NumberSequence.new(0.5)
+    effect.Transparency = NumberSequence.new(0.5)
+    effect.EmissionDirection = Enum.NormalId.Bottom
+    
+    -- Cập nhật giao diện
+    onof.Text = "ON"
+    onof.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+    
+    -- Thông báo
+    Library:Notify({
+        Title = "Flight Enabled",
+        Content = "Press FLY button to turn off",
+        Duration = 5
+    })
+end
+
+local function disableFlight()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        -- Bật lại các trạng thái humanoid
+        for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+            humanoid:SetStateEnabled(state, true)
+        end
+        humanoid.PlatformStand = false
+    end
+    
+    -- Xóa các bộ phận vật lý
+    local torso = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("UpperTorso")
+    if torso then
+        for _, obj in ipairs(torso:GetChildren()) do
+            if obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") then
+                obj:Destroy()
+            end
+        end
+    end
+    
+    -- Xóa hiệu ứng
+    for _, particle in ipairs(character:GetDescendants()) do
+        if particle:IsA("ParticleEmitter") then
+            particle:Destroy()
+        end
+    end
+    
+    -- Cập nhật giao diện
+    onof.Text = "FLY"
+    onof.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    
+    -- Thông báo
+    Library:Notify({
+        Title = "Flight Disabled",
+        Content = "You can enable it again anytime",
+        Duration = 5
+    })
+end
+
+-- Khi nhân vật thay đổi
+game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(character)
+    if flightToggled then
+        wait(1)
+        enableFlight()
+    end
+end)
+
+-- Kết nối sự kiện nút
+onof.MouseButton1Down:connect(function()
+    flightToggled = not flightToggled
+    if flightToggled then
+        enableFlight()
+    else
+        disableFlight()
+    end
+end)
+
+up.MouseButton1Down:connect(function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,2,0)
+end)
+
+down.MouseButton1Down:connect(function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,-2,0)
+end)
+
+plus.MouseButton1Down:connect(function()
+    speeds = speeds + 1
+    speed.Text = speeds
+    flightSpeed = speeds
+end)
+
+mine.MouseButton1Down:connect(function()
+    if speeds > 1 then
+        speeds = speeds - 1
+        speed.Text = speeds
+        flightSpeed = speeds
+    else
+        speed.Text = "MIN"
+        wait(0.5)
+        speed.Text = speeds
+    end
+end)
