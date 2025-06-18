@@ -1,0 +1,314 @@
+-- Tải Fluent UI Library
+local Library = loadstring(game:HttpGetAsync("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
+
+-- Âm thanh khởi động
+local startupSound = Instance.new("Sound")
+startupSound.SoundId = "rbxassetid://8594342648"
+startupSound.Volume = 5
+startupSound.Looped = false
+startupSound.Parent = game.CoreGui
+startupSound:Play()
+
+-- Tạo cửa sổ chính
+local Window = Library:CreateWindow{
+    Title = "CAT HUB",
+    SubTitle = "Flight Control System",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(500, 400),
+    Resize = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
+}
+
+-- Thêm tab điều khiển bay
+local FlightTab = Window:AddTab({
+    Title = "Flight Control",
+    Icon = ""
+})
+
+-- Thêm các section
+local FlightSection = FlightTab:AddSection("Flight Settings")
+local ControlSection = FlightTab:AddSection("Controls")
+local InfoSection = FlightTab:AddSection("Information")
+
+-- Biến điều khiển
+local flyEnabled = false
+local flightSpeed = 1
+local flightToggled = false
+
+-- Tạo nút bật/tắt bay
+FlightSection:AddButton({
+    Title = flightToggled and "Disable Flight" or "Enable Flight",
+    Description = "Toggle flight mode",
+    Callback = function()
+        flightToggled = not flightToggled
+        FlightSection:GetButton(1):SetTitle(flightToggled and "Disable Flight" or "Enable Flight")
+        
+        if flightToggled then
+            enableFlight()
+        else
+            disableFlight()
+        end
+    end
+})
+
+-- Thanh điều chỉnh tốc độ
+FlightSection:AddSlider({
+    Title = "Flight Speed",
+    Description = "Adjust your flight speed",
+    Default = flightSpeed,
+    Min = 1,
+    Max = 10,
+    Callback = function(value)
+        flightSpeed = value
+    end
+})
+
+-- Thông tin điều khiển
+ControlSection:AddParagraph({
+    Title = "Controls",
+    Content = "WASD: Move\nSpace: Ascend\nShift: Descend\nClick + Drag: Move GUI"
+})
+
+-- Thông tin tác giả
+InfoSection:AddParagraph({
+    Title = "Created by",
+    Content = "Thịnh (subcakevn)"
+})
+
+-- Hiệu ứng hover cho nút
+local function createRippleEffect(button)
+    local ripple = Instance.new("Frame")
+    ripple.Name = "Ripple"
+    ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ripple.BackgroundTransparency = 0.8
+    ripple.Size = UDim2.new(0, 0, 0, 0)
+    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+    ripple.ZIndex = 10
+    ripple.Parent = button
+    
+    local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+    local pos = Vector2.new(mouse.X - ripple.AbsolutePosition.X, mouse.Y - ripple.AbsolutePosition.Y)
+    
+    ripple:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 0.5, true)
+    ripple:TweenPosition(UDim2.new(0.5, 0, 0.5, 0), "Out", "Quad", 0.5, true)
+    
+    spawn(function()
+        wait(0.5)
+        ripple:TweenSize(UDim2.new(0, 0, 0, 0), "Out", "Quad", 0.5, true)
+        wait(0.5)
+        ripple:Destroy()
+    end)
+end
+
+-- Chức năng bay
+local function enableFlight()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    -- Tắt các trạng thái humanoid
+    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+        humanoid:SetStateEnabled(state, false)
+    end
+    
+    -- Tạo các bộ phận vật lý
+    local torso = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("UpperTorso")
+    if not torso then return end
+    
+    local bg = Instance.new("BodyGyro", torso)
+    bg.P = 9e4
+    bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.cframe = torso.CFrame
+    
+    local bv = Instance.new("BodyVelocity", torso)
+    bv.velocity = Vector3.new(0, 0.1, 0)
+    bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    
+    humanoid.PlatformStand = true
+    
+    -- Kết nối sự kiện đầu vào
+    local connection
+    connection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not flightToggled or not character or not humanoid or humanoid.Health <= 0 then
+            connection:Disconnect()
+            return
+        end
+        
+        local camera = workspace.CurrentCamera
+        local moveDirection = Vector3.new()
+        
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDirection = moveDirection + Vector3.new(0, -1, 0)
+        end
+        
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit * flightSpeed
+            bv.Velocity = moveDirection * 50
+        else
+            bv.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        bg.CFrame = camera.CFrame
+    end)
+    
+    -- Hiệu ứng khi bật bay
+    local effect = Instance.new("ParticleEmitter", torso)
+    effect.LightEmission = 1
+    effect.Texture = "rbxassetid://243664672"
+    effect.Color = ColorSequence.new(Color3.fromRGB(0, 162, 255))
+    effect.Lifetime = NumberRange.new(0.5)
+    effect.Rate = 50
+    effect.Speed = NumberRange.new(2)
+    effect.Size = NumberSequence.new(0.5)
+    effect.Transparency = NumberSequence.new(0.5)
+    effect.EmissionDirection = Enum.NormalId.Bottom
+    
+    -- Thông báo
+    Library:Notify({
+        Title = "Flight Enabled",
+        Content = "Press " .. tostring(flightToggled and "Disable Flight" or "Enable Flight") .. " to turn off",
+        Duration = 5
+    })
+end
+
+local function disableFlight()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        -- Bật lại các trạng thái humanoid
+        for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+            humanoid:SetStateEnabled(state, true)
+        end
+        humanoid.PlatformStand = false
+    end
+    
+    -- Xóa các bộ phận vật lý
+    local torso = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("UpperTorso")
+    if torso then
+        for _, obj in ipairs(torso:GetChildren()) do
+            if obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") then
+                obj:Destroy()
+            end
+        end
+    end
+    
+    -- Xóa hiệu ứng
+    for _, particle in ipairs(character:GetDescendants()) do
+        if particle:IsA("ParticleEmitter") then
+            particle:Destroy()
+        end
+    end
+    
+    -- Thông báo
+    Library:Notify({
+        Title = "Flight Disabled",
+        Content = "You can enable it again anytime",
+        Duration = 5
+    })
+end
+
+-- Khi nhân vật thay đổi
+game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(character)
+    if flightToggled then
+        wait(1)
+        enableFlight()
+    end
+end)
+
+-- Nút bay nhanh (mini GUI)
+local miniGui = Instance.new("ScreenGui")
+miniGui.Name = "FlightMiniGUI"
+miniGui.Parent = game:GetService("CoreGui")
+
+local flightButton = Instance.new("TextButton")
+flightButton.Name = "FlightButton"
+flightButton.Size = UDim2.new(0, 100, 0, 50)
+flightButton.Position = UDim2.new(0.8, 0, 0.7, 0)
+flightButton.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+flightButton.TextColor3 = Color3.new(1, 1, 1)
+flightButton.Text = "FLY"
+flightButton.Font = Enum.Font.GothamBold
+flightButton.TextSize = 18
+flightButton.ZIndex = 2
+flightButton.Parent = miniGui
+
+-- Hiệu ứng nút
+flightButton.MouseEnter:Connect(function()
+    game:GetService("TweenService"):Create(flightButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(0, 132, 215)
+    }):Play()
+end)
+
+flightButton.MouseLeave:Connect(function()
+    game:GetService("TweenService"):Create(flightButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+    }):Play()
+end)
+
+flightButton.MouseButton1Click:Connect(function()
+    flightToggled = not flightToggled
+    flightButton.Text = flightToggled and "FLYING" or "FLY"
+    
+    if flightToggled then
+        enableFlight()
+    else
+        disableFlight()
+    end
+end)
+
+-- Kéo thả GUI
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    miniGui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+flightButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = miniGui.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+flightButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
