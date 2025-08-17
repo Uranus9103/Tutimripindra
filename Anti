@@ -1,0 +1,180 @@
+-- Đặt script này trong StarterPlayerScripts
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Tạo giao diện
+local gui = Instance.new("ScreenGui")
+gui.Name = "UltraJumpGodMode"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Khung chính
+local frame = Instance.new("Frame")
+frame.Parent = gui
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+-- Bo góc
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "ULTRA JUMP + GOD MODE"
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBlack
+
+-- Nút bật/tắt
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Parent = frame
+toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+toggleBtn.Position = UDim2.new(0.5, -60, 0.5, -20)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+toggleBtn.Text = "BẬT"
+toggleBtn.TextColor3 = Color3.white
+toggleBtn.TextSize = 18
+toggleBtn.Font = Enum.Font.GothamBold
+
+-- Trạng thái
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Parent = frame
+statusLabel.Size = UDim2.new(1, -20, 0, 30)
+statusLabel.Position = UDim2.new(0, 10, 0, 150)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Tắt"
+statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+statusLabel.TextSize = 16
+statusLabel.Font = Enum.Font.GothamSemibold
+
+-- Biến toàn cục
+local enabled = false
+local connections = {}
+
+-- Hàm thông báo
+local function Notify(msg)
+    local notify = Instance.new("TextLabel")
+    notify.Parent = gui
+    notify.Size = UDim2.new(0, 250, 0, 50)
+    notify.Position = UDim2.new(1, 260, 1, -100)
+    notify.BackgroundColor3 = Color3.fromRGB(40, 45, 50)
+    notify.Text = msg
+    notify.TextColor3 = Color3.white
+    notify.TextSize = 14
+    notify.Font = Enum.Font.Gotham
+    
+    -- Hiệu ứng xuất hiện
+    notify:TweenPosition(UDim2.new(1, -260, 1, -100), "Out", "Quad", 0.3, true)
+    
+    task.delay(3, function()
+        notify:TweenPosition(UDim2.new(1, 260, 1, -100), "In", "Quad", 0.3, true)
+        task.wait(0.3)
+        notify:Destroy()
+    end)
+end
+
+-- Hàm bật tính năng
+local function EnableFeatures()
+    -- Nhảy vô hạn
+    local jumpConn = game:GetService("UserInputService").JumpRequest:Connect(function()
+        if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+            humanoid:ChangeState("Jumping")
+        end
+    end)
+    
+    -- Bất tử
+    local godConn = humanoid.HealthChanged:Connect(function()
+        if humanoid.Health < 100 then
+            humanoid.Health = 100
+        end
+    end)
+    
+    -- Ngăn chết
+    local deathConn = humanoid.Died:Connect(function()
+        task.wait(0.1)
+        player:LoadCharacter()
+        Notify("Bạn đã được hồi sinh!")
+    end)
+    
+    table.insert(connections, jumpConn)
+    table.insert(connections, godConn)
+    table.insert(connections, deathConn)
+    
+    -- Tăng sức nhảy
+    humanoid.JumpPower = 50
+    
+    -- Cập nhật UI
+    toggleBtn.Text = "TẮT"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    statusLabel.Text = "Status: Đang hoạt động"
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    
+    Notify("Cảm ơn đã sử dụng!\nĐã bật chế độ SIÊU NHÂN")
+end
+
+-- Hàm tắt tính năng
+local function DisableFeatures()
+    -- Ngắt kết nối
+    for _, conn in ipairs(connections) do
+        conn:Disconnect()
+    end
+    connections = {}
+    
+    -- Khôi phục sức nhảy
+    if humanoid then
+        humanoid.JumpPower = 50
+    end
+    
+    -- Cập nhật UI
+    toggleBtn.Text = "BẬT"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    statusLabel.Text = "Status: Tắt"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+end
+
+-- Xử lý nhấn nút
+toggleBtn.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    
+    if enabled then
+        EnableFeatures()
+    else
+        DisableFeatures()
+    end
+end)
+
+-- Xử lý khi nhân vật thay đổi
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    
+    if enabled then
+        EnableFeatures()
+    end
+end)
+
+-- Hiệu ứng nút
+toggleBtn.MouseEnter:Connect(function()
+    game:GetService("TweenService"):Create(
+        toggleBtn,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = enabled and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(0, 180, 255)}
+    ):Play()
+end)
+
+toggleBtn.MouseLeave:Connect(function()
+    game:GetService("TweenService"):Create(
+        toggleBtn,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = enabled and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 150, 255)}
+    ):Play()
+end)
