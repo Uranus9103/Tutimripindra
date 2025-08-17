@@ -1,0 +1,252 @@
+-- Đặt script này trong StarterPlayerScripts
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Tạo giao diện
+local gui = Instance.new("ScreenGui")
+gui.Name = "JumpVIP_PRO"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Khung chính
+local frame = Instance.new("Frame")
+frame.Parent = gui
+frame.Size = UDim2.new(0, 320, 0, 220)
+frame.Position = UDim2.new(0.5, -160, 0.5, -110)
+frame.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+-- Bo góc
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Hiệu ứng bóng
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.Parent = frame
+shadow.BackgroundTransparency = 1
+shadow.Size = UDim2.new(1, 10, 1, 10)
+shadow.Position = UDim2.new(0, -5, 0, -5)
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageColor3 = Color3.new(0, 0, 0)
+shadow.ImageTransparency = 0.8
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+shadow.ZIndex = -1
+
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Size = UDim2.new(1, 0, 0, 50)
+title.BackgroundTransparency = 1
+title.Text = "JUMP VIP PRO"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 24
+title.Font = Enum.Font.GothamBlack
+title.Position = UDim2.new(0, 0, 0, 10)
+
+-- Dòng mô tả
+local desc = Instance.new("TextLabel")
+desc.Parent = frame
+desc.Size = UDim2.new(1, -20, 0, 40)
+desc.Position = UDim2.new(0, 10, 0, 50)
+desc.BackgroundTransparency = 1
+desc.Text = "Nhảy vô hạn + Bất tử - Phiên bản Premium"
+desc.TextColor3 = Color3.fromRGB(180, 180, 180)
+desc.TextSize = 14
+desc.Font = Enum.Font.GothamMedium
+desc.TextWrapped = true
+
+-- Nút bật/tắt
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Parent = frame
+toggleBtn.Size = UDim2.new(0, 140, 0, 45)
+toggleBtn.Position = UDim2.new(0.5, -70, 0, 100)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+toggleBtn.Text = "BẬT"
+toggleBtn.TextColor3 = Color3.white
+toggleBtn.TextSize = 18
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.AutoButtonColor = false
+
+-- Bo góc nút
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = toggleBtn
+
+-- Hiệu ứng hover nút
+toggleBtn.MouseEnter:Connect(function()
+    game:GetService("TweenService"):Create(
+        toggleBtn,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = Color3.fromRGB(100, 180, 255)}
+    ):Play()
+end)
+
+toggleBtn.MouseLeave:Connect(function()
+    game:GetService("TweenService"):Create(
+        toggleBtn,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = Color3.fromRGB(80, 160, 255)}
+    ):Play()
+end)
+
+-- Trạng thái
+local status = Instance.new("TextLabel")
+status.Parent = frame
+status.Size = UDim2.new(1, -20, 0, 30)
+status.Position = UDim2.new(0, 10, 0, 160)
+status.BackgroundTransparency = 1
+status.Text = "Trạng thái: Tắt"
+status.TextColor3 = Color3.fromRGB(255, 100, 100)
+status.TextSize = 16
+status.Font = Enum.Font.GothamSemibold
+
+-- Biến lưu trữ
+local jumpEnabled = false
+local godMode = false
+local originalJump = humanoid.JumpPower
+local connections = {}
+
+-- Tạo thông báo
+local function showNotify(msg)
+    local notify = Instance.new("Frame")
+    notify.Parent = gui
+    notify.Size = UDim2.new(0, 260, 0, 60)
+    notify.Position = UDim2.new(1, 260, 1, -100)
+    notify.BackgroundColor3 = Color3.fromRGB(40, 45, 50)
+    notify.BorderSizePixel = 0
+    
+    local notifyCorner = Instance.new("UICorner")
+    notifyCorner.CornerRadius = UDim.new(0, 8)
+    notifyCorner.Parent = notify
+    
+    local notifyText = Instance.new("TextLabel")
+    notifyText.Parent = notify
+    notifyText.Size = UDim2.new(1, -20, 1, -20)
+    notifyText.Position = UDim2.new(0, 10, 0, 10)
+    notifyText.BackgroundTransparency = 1
+    notifyText.Text = msg
+    notifyText.TextColor3 = Color3.white
+    notifyText.TextSize = 14
+    notifyText.Font = Enum.Font.Gotham
+    notifyText.TextWrapped = true
+    
+    -- Hiệu ứng xuất hiện
+    game:GetService("TweenService"):Create(
+        notify,
+        TweenInfo.new(0.3),
+        {Position = UDim2.new(1, -270, 1, -100)}
+    ):Play()
+    
+    wait(3)
+    
+    -- Hiệu ứng biến mất
+    game:GetService("TweenService"):Create(
+        notify,
+        TweenInfo.new(0.3),
+        {Position = UDim2.new(1, 260, 1, -100)}
+    ):Play()
+    
+    wait(0.3)
+    notify:Destroy()
+end
+
+-- Chức năng nhảy vô hạn
+local function enableInfiniteJump()
+    local conn
+    conn = game:GetService("UserInputService").JumpRequest:Connect(function()
+        if jumpEnabled and humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+            humanoid:ChangeState("Jumping")
+        end
+    end)
+    table.insert(connections, conn)
+end
+
+-- Chức năng bất tử
+local function enableGodMode()
+    local conn1
+    conn1 = humanoid.HealthChanged:Connect(function()
+        if godMode and humanoid.Health < 50 then
+            humanoid.Health = 100
+        end
+    end)
+    
+    local conn2
+    conn2 = humanoid.Died:Connect(function()
+        if godMode then
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local pos = hrp.Position
+                player:LoadCharacter()
+                character = player.Character
+                humanoid = character:WaitForChild("Humanoid")
+                character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos)
+                showNotify("Bất tử: Bạn đã được hồi sinh tại chỗ!")
+            end
+        end
+    end)
+    
+    table.insert(connections, conn1)
+    table.insert(connections, conn2)
+end
+
+-- Bật/tắt tính năng
+local function toggleFeatures()
+    jumpEnabled = not jumpEnabled
+    godMode = not godMode
+    
+    if jumpEnabled then
+        -- Bật tính năng
+        toggleBtn.Text = "TẮT"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        status.Text = "Trạng thái: Đang bật"
+        status.TextColor3 = Color3.fromRGB(100, 255, 100)
+        humanoid.JumpPower = 50
+        
+        -- Hiển thị cảm ơn
+        showNotify("Cảm ơn bạn đã sử dụng Jump VIP Pro!\nTính năng đã được kích hoạt!")
+        
+        -- Kích hoạt chức năng
+        enableInfiniteJump()
+        enableGodMode()
+    else
+        -- Tắt tính năng
+        toggleBtn.Text = "BẬT"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+        status.Text = "Trạng thái: Tắt"
+        status.TextColor3 = Color3.fromRGB(255, 100, 100)
+        humanoid.JumpPower = originalJump
+        
+        -- Ngắt kết nối
+        for _, v in pairs(connections) do
+            v:Disconnect()
+        end
+        connections = {}
+    end
+end
+
+-- Xử lý khi nhân vật thay đổi
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    originalJump = humanoid.JumpPower
+    
+    if jumpEnabled then
+        humanoid.JumpPower = 50
+        enableInfiniteJump()
+        enableGodMode()
+    end
+end)
+
+-- Nhấn nút
+toggleBtn.MouseButton1Click:Connect(toggleFeatures)
+
+-- Khởi tạo ban đầu
+if humanoid then
+    originalJump = humanoid.JumpPower
+end
