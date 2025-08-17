@@ -1,0 +1,208 @@
+-- Place this LocalScript in StarterPlayerScripts or StarterGui
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Create the UI
+local gui = Instance.new("ScreenGui")
+gui.Name = "InfiniteJumpUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Parent = gui
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "INFINITE JUMP v2.0"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 22
+title.Font = Enum.Font.GothamBold
+title.Position = UDim2.new(0, 0, 0, 10)
+
+-- Description
+local desc = Instance.new("TextLabel")
+desc.Parent = frame
+desc.Size = UDim2.new(1, -20, 0, 40)
+desc.Position = UDim2.new(0, 10, 0, 40)
+desc.BackgroundTransparency = 1
+desc.Text = "Infinite jumps with anti-death protection"
+desc.TextColor3 = Color3.fromRGB(200, 200, 200)
+desc.TextSize = 14
+desc.Font = Enum.Font.Gotham
+desc.TextWrapped = true
+
+-- Toggle Button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Parent = frame
+toggleButton.Size = UDim2.new(0, 120, 0, 40)
+toggleButton.Position = UDim2.new(0.5, -60, 0, 90)
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
+toggleButton.Text = "ACTIVATE"
+toggleButton.TextColor3 = Color3.white
+toggleButton.TextSize = 16
+toggleButton.Font = Enum.Font.GothamBold
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleButton
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Parent = frame
+statusLabel.Size = UDim2.new(1, -20, 0, 30)
+statusLabel.Position = UDim2.new(0, 10, 0, 140)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Inactive"
+statusLabel.TextColor3 = Color3.fromRGB(220, 100, 100)
+statusLabel.TextSize = 14
+statusLabel.Font = Enum.Font.Gotham
+
+-- Variables
+local infiniteJumpEnabled = false
+local antiDeathEnabled = false
+local originalJumpPower = humanoid.JumpPower
+local connections = {}
+
+-- Function to create notification
+local function notify(message)
+    local notif = Instance.new("Frame")
+    notif.Parent = gui
+    notif.Size = UDim2.new(0, 250, 0, 60)
+    notif.Position = UDim2.new(1, -260, 1, -70)
+    notif.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    notif.BorderSizePixel = 0
+    local notifCorner = Instance.new("UICorner")
+    notifCorner.CornerRadius = UDim.new(0, 8)
+    notifCorner.Parent = notif
+    
+    local notifText = Instance.new("TextLabel")
+    notifText.Parent = notif
+    notifText.Size = UDim2.new(1, -20, 1, -20)
+    notifText.Position = UDim2.new(0, 10, 0, 10)
+    notifText.BackgroundTransparency = 1
+    notifText.Text = message
+    notifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notifText.TextSize = 14
+    notifText.Font = Enum.Font.Gotham
+    notifText.TextWrapped = true
+    
+    game:GetService("TweenService"):Create(
+        notif,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {Position = UDim2.new(1, -260, 1, -70)}
+    ):Play()
+    
+    wait(3)
+    
+    game:GetService("TweenService"):Create(
+        notif,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        {Position = UDim2.new(1, 260, 1, -70)}
+    ):Play()
+    
+    wait(0.3)
+    notif:Destroy()
+end
+
+-- Infinite Jump Function
+local function setupInfiniteJump()
+    local connection
+    connection = game:GetService("UserInputService").JumpRequest:Connect(function()
+        if infiniteJumpEnabled and humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+            humanoid:ChangeState("Jumping")
+        end
+    end)
+    table.insert(connections, connection)
+end
+
+-- Anti-Death Function
+local function setupAntiDeath()
+    local connection
+    connection = humanoid.Died:Connect(function()
+        if antiDeathEnabled then
+            local root = character:FindFirstChild("HumanoidRootPart")
+            if root then
+                -- Respawn at current position
+                player:LoadCharacter()
+                notify("Anti-Death: You were protected from death!")
+            end
+        end
+    end)
+    table.insert(connections, humanoid.HealthChanged:Connect(function()
+        if antiDeathEnabled and humanoid.Health < 10 then
+            humanoid.Health = 100
+            notify("Anti-Death: Health restored!")
+        end
+    end))
+    table.insert(connections, connection)
+end
+
+-- Toggle Function
+local function toggleFeatures()
+    infiniteJumpEnabled = not infiniteJumpEnabled
+    antiDeathEnabled = not antiDeathEnabled
+    
+    if infiniteJumpEnabled then
+        toggleButton.Text = "DEACTIVATE"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+        statusLabel.Text = "Status: Active"
+        statusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
+        humanoid.JumpPower = 50 -- Increased jump power when active
+        
+        -- Show thank you message
+        notify("Thank you for using Infinite Jump!\nFeatures activated.")
+    else
+        toggleButton.Text = "ACTIVATE"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
+        statusLabel.Text = "Status: Inactive"
+        statusLabel.TextColor3 = Color3.fromRGB(220, 100, 100)
+        humanoid.JumpPower = originalJumpPower
+        
+        notify("Infinite Jump features deactivated.")
+    end
+    
+    -- Clear old connections
+    for _, conn in ipairs(connections) do
+        conn:Disconnect()
+    end
+    connections = {}
+    
+    if infiniteJumpEnabled then
+        setupInfiniteJump()
+        setupAntiDeath()
+    end
+end
+
+-- Character added event
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    originalJumpPower = humanoid.JumpPower
+    
+    if infiniteJumpEnabled then
+        humanoid.JumpPower = 50
+        setupInfiniteJump()
+        setupAntiDeath()
+    end
+end)
+
+-- Toggle button click
+toggleButton.MouseButton1Click:Connect(toggleFeatures)
+
+-- Initial setup if already in game
+if humanoid then
+    originalJumpPower = humanoid.JumpPower
+end
